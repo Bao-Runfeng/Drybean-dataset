@@ -1,0 +1,1037 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dry Bean Dataset 多分类实验报告</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.6;
+      color: #1f2933;
+      background: #f7f8fb;
+    }
+    header {
+      background: #16324f;
+      color: white;
+      padding: 32px 9vw;
+    }
+    main {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 28px 20px 56px;
+    }
+    section, .model-block {
+      background: white;
+      border: 1px solid #dde3ea;
+      border-radius: 8px;
+      padding: 22px;
+      margin-bottom: 20px;
+    }
+    h1, h2, h3 {
+      margin-top: 0;
+    }
+    h3 span {
+      color: #607083;
+      font-size: 15px;
+      margin-left: 8px;
+      font-weight: 500;
+    }
+    h4 {
+      margin-bottom: 8px;
+    }
+    .index-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .index-links a {
+      color: #16324f;
+      background: #edf2f7;
+      border-radius: 5px;
+      padding: 5px 9px;
+      text-decoration: none;
+      font-size: 14px;
+    }
+    .metric-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+      margin: 16px 0;
+    }
+    .metric-cards div {
+      border: 1px solid #dbe3ec;
+      border-radius: 6px;
+      padding: 10px;
+      background: #f8fafc;
+    }
+    .metric-cards strong {
+      display: block;
+      font-size: 22px;
+      color: #16324f;
+    }
+    .metric-cards span {
+      display: block;
+      color: #526170;
+      font-size: 13px;
+    }
+    .data-table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 14px;
+    }
+    .data-table th, .data-table td {
+      border-bottom: 1px solid #e6eaf0;
+      padding: 8px 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+    .data-table th {
+      background: #f0f4f8;
+    }
+    .figure-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 16px;
+      align-items: start;
+    }
+    figure {
+      margin: 0;
+    }
+    figcaption {
+      margin-top: 5px;
+      color: #526170;
+      font-size: 13px;
+    }
+    img {
+      max-width: 100%;
+      border: 1px solid #d7dee8;
+      border-radius: 6px;
+      background: white;
+    }
+    code {
+      background: #edf2f7;
+      padding: 2px 5px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Dry Bean Dataset 多分类机器学习项目</h1>
+    <p>包含数据分析、数据清洗、特征工程、五种算法实验、速度/鲁棒性/过拟合对比，以及每个算法的独立分析。</p>
+  </header>
+  <main>
+    <section>
+      <h2>项目结论总览</h2>
+      <p>当前测试集精度最高的是 KNN，测试集准确率 = 0.9295，宏平均 F1 = 0.9405。</p>
+      <div class="index-links"><a href="#logistic_regression">Logistic Regression</a><a href="#knn">KNN</a><a href="#linear_svm">Linear SVM</a><a href="#random_forest">Random Forest</a><a href="#gaussian_nb">Gaussian Naive Bayes</a></div>
+    </section>
+    <section>
+      <h2>数据说明与污染情况</h2>
+      <p>数据目标是根据豆类图像提取出的形状特征预测七个干豆品种。原始数据已经由教师划分为训练集、验证集和测试集。</p>
+      <table class="dataframe data-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>split</th>
+      <th>raw_rows</th>
+      <th>cleaned_rows</th>
+      <th>raw_columns</th>
+      <th>duplicate_rows_raw</th>
+      <th>duplicate_rows_removed</th>
+      <th>missing_cells_raw</th>
+      <th>missing_cells_after_numeric_conversion</th>
+      <th>non_numeric_feature_cells</th>
+      <th>negative_area_fixed</th>
+      <th>class_label_variants_normalized</th>
+      <th>invalid_class_rows_dropped</th>
+      <th>invalid_domain_cells_set_missing</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>train</td>
+      <td>9527</td>
+      <td>9503</td>
+      <td>17</td>
+      <td>21</td>
+      <td>24</td>
+      <td>741</td>
+      <td>943</td>
+      <td>460</td>
+      <td>0</td>
+      <td>406</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <td>val</td>
+      <td>1347</td>
+      <td>1347</td>
+      <td>17</td>
+      <td>0</td>
+      <td>0</td>
+      <td>103</td>
+      <td>125</td>
+      <td>60</td>
+      <td>11</td>
+      <td>61</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <td>test</td>
+      <td>2737</td>
+      <td>2737</td>
+      <td>17</td>
+      <td>0</td>
+      <td>0</td>
+      <td>221</td>
+      <td>267</td>
+      <td>138</td>
+      <td>19</td>
+      <td>114</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+  </tbody>
+</table>
+    </section>
+    <section>
+      <h2>类别分布</h2>
+      <table class="dataframe data-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>split</th>
+      <th>class_name</th>
+      <th>count</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>train</td>
+      <td>BARBUNYA</td>
+      <td>927</td>
+    </tr>
+    <tr>
+      <td>train</td>
+      <td>BOMBAY</td>
+      <td>361</td>
+    </tr>
+    <tr>
+      <td>train</td>
+      <td>CALI</td>
+      <td>1151</td>
+    </tr>
+    <tr>
+      <td>train</td>
+      <td>DERMASON</td>
+      <td>2503</td>
+    </tr>
+    <tr>
+      <td>train</td>
+      <td>HOROZ</td>
+      <td>1316</td>
+    </tr>
+    <tr>
+      <td>train</td>
+      <td>SEKER</td>
+      <td>1408</td>
+    </tr>
+    <tr>
+      <td>train</td>
+      <td>SIRA</td>
+      <td>1837</td>
+    </tr>
+    <tr>
+      <td>val</td>
+      <td>BARBUNYA</td>
+      <td>124</td>
+    </tr>
+    <tr>
+      <td>val</td>
+      <td>BOMBAY</td>
+      <td>50</td>
+    </tr>
+    <tr>
+      <td>val</td>
+      <td>CALI</td>
+      <td>154</td>
+    </tr>
+    <tr>
+      <td>val</td>
+      <td>DERMASON</td>
+      <td>352</td>
+    </tr>
+    <tr>
+      <td>val</td>
+      <td>HOROZ</td>
+      <td>186</td>
+    </tr>
+    <tr>
+      <td>val</td>
+      <td>SEKER</td>
+      <td>201</td>
+    </tr>
+    <tr>
+      <td>val</td>
+      <td>SIRA</td>
+      <td>280</td>
+    </tr>
+    <tr>
+      <td>test</td>
+      <td>BARBUNYA</td>
+      <td>271</td>
+    </tr>
+    <tr>
+      <td>test</td>
+      <td>BOMBAY</td>
+      <td>111</td>
+    </tr>
+    <tr>
+      <td>test</td>
+      <td>CALI</td>
+      <td>325</td>
+    </tr>
+    <tr>
+      <td>test</td>
+      <td>DERMASON</td>
+      <td>691</td>
+    </tr>
+    <tr>
+      <td>test</td>
+      <td>HOROZ</td>
+      <td>402</td>
+    </tr>
+    <tr>
+      <td>test</td>
+      <td>SEKER</td>
+      <td>418</td>
+    </tr>
+    <tr>
+      <td>test</td>
+      <td>SIRA</td>
+      <td>519</td>
+    </tr>
+  </tbody>
+</table>
+    </section>
+    <section>
+      <h2>数据处理流程</h2>
+      <ol>
+        <li>统一列名并解析数值特征，将 <code>?</code>、缺失值和带单位的字符串转成可处理的数值或缺失值。</li>
+        <li>修正标签大小写、尾随空格和字符替换污染，例如 <code>D3RMAS0N</code>、<code>H0R0Z</code>。</li>
+        <li>对物理上不合理的数值做规则处理，例如负面积转为正面积，非法比例值设为缺失。</li>
+        <li>删除训练集重复样本；用训练集的中位数填补缺失值，再用 Z-Score 标准化。</li>
+        <li>增加少量具有形状含义的组合特征，例如长短轴比、面积/凸包面积比、周长/面积平方根比。</li>
+      </ol>
+    </section>
+    <section>
+      <h2>算法设计</h2>
+      <table class="dataframe data-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>模型</th>
+      <th>来源</th>
+      <th>说明</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Logistic Regression</td>
+      <td>课堂已学</td>
+      <td>线性多分类模型；使用 log loss 训练，可输出概率并绘制 loss 曲线。</td>
+    </tr>
+    <tr>
+      <td>KNN</td>
+      <td>课堂已学</td>
+      <td>基于距离投票的非参数算法；天然支持多分类，没有迭代 loss 曲线。</td>
+    </tr>
+    <tr>
+      <td>Linear SVM</td>
+      <td>课堂已学</td>
+      <td>使用 hinge loss 的线性支持向量机；可绘制训练过程中的 hinge loss。</td>
+    </tr>
+    <tr>
+      <td>Random Forest</td>
+      <td>课堂未讲</td>
+      <td>多棵决策树投票的集成算法，通常对异常值和特征尺度较稳健。</td>
+    </tr>
+    <tr>
+      <td>Gaussian Naive Bayes</td>
+      <td>课堂未讲</td>
+      <td>基于条件独立假设的概率分类器，训练和推理速度很快。</td>
+    </tr>
+  </tbody>
+</table>
+    </section>
+    <section>
+      <h2>五种算法总览对比</h2>
+      <table class="dataframe data-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>model</th>
+      <th>display_name</th>
+      <th>course_source</th>
+      <th>train_accuracy</th>
+      <th>val_accuracy</th>
+      <th>test_accuracy</th>
+      <th>test_macro_f1</th>
+      <th>test_weighted_f1</th>
+      <th>train_test_accuracy_gap</th>
+      <th>inference_seconds_mean</th>
+      <th>inference_seconds_std</th>
+      <th>inference_ms_per_sample</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>knn</td>
+      <td>KNN</td>
+      <td>课堂已学</td>
+      <td>1.0000</td>
+      <td>0.9220</td>
+      <td>0.9295</td>
+      <td>0.9405</td>
+      <td>0.9296</td>
+      <td>0.0705</td>
+      <td>0.0143</td>
+      <td>0.0018</td>
+      <td>0.0052</td>
+    </tr>
+    <tr>
+      <td>random_forest</td>
+      <td>Random Forest</td>
+      <td>课堂未讲</td>
+      <td>1.0000</td>
+      <td>0.9206</td>
+      <td>0.9229</td>
+      <td>0.9327</td>
+      <td>0.9229</td>
+      <td>0.0771</td>
+      <td>0.0157</td>
+      <td>0.0047</td>
+      <td>0.0057</td>
+    </tr>
+    <tr>
+      <td>linear_svm</td>
+      <td>Linear SVM</td>
+      <td>课堂已学</td>
+      <td>0.9126</td>
+      <td>0.9139</td>
+      <td>0.9141</td>
+      <td>0.9268</td>
+      <td>0.9156</td>
+      <td>-0.0016</td>
+      <td>0.0001</td>
+      <td>0.0000</td>
+      <td>0.0000</td>
+    </tr>
+    <tr>
+      <td>logistic_regression</td>
+      <td>Logistic Regression</td>
+      <td>课堂已学</td>
+      <td>0.9079</td>
+      <td>0.9139</td>
+      <td>0.9105</td>
+      <td>0.9231</td>
+      <td>0.9122</td>
+      <td>-0.0026</td>
+      <td>0.0001</td>
+      <td>0.0000</td>
+      <td>0.0000</td>
+    </tr>
+    <tr>
+      <td>gaussian_nb</td>
+      <td>Gaussian Naive Bayes</td>
+      <td>课堂未讲</td>
+      <td>0.9011</td>
+      <td>0.9154</td>
+      <td>0.9065</td>
+      <td>0.9154</td>
+      <td>0.9066</td>
+      <td>-0.0054</td>
+      <td>0.0004</td>
+      <td>0.0000</td>
+      <td>0.0001</td>
+    </tr>
+  </tbody>
+</table>
+      <h3>鲁棒性均值排序</h3>
+      <table class="dataframe data-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>模型</th>
+      <th>平均准确率下降</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Random Forest</td>
+      <td>0.0002</td>
+    </tr>
+    <tr>
+      <td>Gaussian Naive Bayes</td>
+      <td>0.0030</td>
+    </tr>
+    <tr>
+      <td>KNN</td>
+      <td>0.0065</td>
+    </tr>
+    <tr>
+      <td>Logistic Regression</td>
+      <td>0.0066</td>
+    </tr>
+    <tr>
+      <td>Linear SVM</td>
+      <td>0.0086</td>
+    </tr>
+  </tbody>
+</table>
+      <h3>总览图表</h3>
+      <div class="figure-grid"><figure><img src="figures/cleaning_summary.png" alt="cleaning_summary"><figcaption>cleaning_summary</figcaption></figure><figure><img src="figures/class_distribution.png" alt="class_distribution"><figcaption>class_distribution</figcaption></figure><figure><img src="figures/feature_correlation.png" alt="feature_correlation"><figcaption>feature_correlation</figcaption></figure><figure><img src="figures/accuracy_comparison.png" alt="accuracy_comparison"><figcaption>accuracy_comparison</figcaption></figure><figure><img src="figures/inference_speed.png" alt="inference_speed"><figcaption>inference_speed</figcaption></figure><figure><img src="figures/overfitting_gap.png" alt="overfitting_gap"><figcaption>overfitting_gap</figcaption></figure><figure><img src="figures/loss_curves.png" alt="loss_curves"><figcaption>loss_curves</figcaption></figure><figure><img src="figures/robustness_accuracy_drop.png" alt="robustness_accuracy_drop"><figcaption>robustness_accuracy_drop</figcaption></figure></div>
+    </section>
+    <section>
+      <h2>单算法详细分析</h2>
+      <p>下面按算法分别列出指标解释、分类报告和该算法独立图表，便于在论文或 GitHub 页面中逐项展示。</p>
+    </section>
+    
+      <article class="model-block" id="logistic_regression">
+        <h3>Logistic Regression <span>课堂已学</span></h3>
+        <p>线性多分类模型；使用 log loss 训练，可输出概率并绘制 loss 曲线。</p>
+        
+        <div class="metric-cards">
+          <div><strong>0.9079</strong><span>训练集准确率</span></div>
+          <div><strong>0.9139</strong><span>验证集准确率</span></div>
+          <div><strong>0.9105</strong><span>测试集准确率</span></div>
+          <div><strong>0.9231</strong><span>宏平均 F1</span></div>
+          <div><strong>-0.0026</strong><span>过拟合差异</span></div>
+          <div><strong>0.000040</strong><span>毫秒/样本</span></div>
+        </div>
+        
+        <p><strong>过拟合分析：</strong>训练集和测试集精度差异较小，泛化表现较稳定。</p>
+        <p><strong>推理速度：</strong>测试集平均预测耗时 0.000110 秒，
+        折合单样本 0.000040 ms。</p>
+        <p><strong>鲁棒性分析：</strong>平均精度下降为 0.0066；最明显下降出现在 missing 噪声、强度 0.10，下降 0.0223。</p>
+        <p><strong>Loss 曲线说明：</strong>该算法使用迭代优化，本报告已单独给出训练集和验证集 loss 曲线。</p>
+        <h4>分类报告</h4>
+        <table class="dataframe data-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>label</th>
+      <th>precision</th>
+      <th>recall</th>
+      <th>f1-score</th>
+      <th>support</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>BARBUNYA</td>
+      <td>0.9516</td>
+      <td>0.8708</td>
+      <td>0.9094</td>
+      <td>271.0000</td>
+    </tr>
+    <tr>
+      <td>BOMBAY</td>
+      <td>0.9910</td>
+      <td>0.9910</td>
+      <td>0.9910</td>
+      <td>111.0000</td>
+    </tr>
+    <tr>
+      <td>CALI</td>
+      <td>0.9472</td>
+      <td>0.8831</td>
+      <td>0.9140</td>
+      <td>325.0000</td>
+    </tr>
+    <tr>
+      <td>DERMASON</td>
+      <td>0.9387</td>
+      <td>0.8871</td>
+      <td>0.9122</td>
+      <td>691.0000</td>
+    </tr>
+    <tr>
+      <td>HOROZ</td>
+      <td>0.9689</td>
+      <td>0.9303</td>
+      <td>0.9492</td>
+      <td>402.0000</td>
+    </tr>
+    <tr>
+      <td>SEKER</td>
+      <td>0.9608</td>
+      <td>0.9378</td>
+      <td>0.9492</td>
+      <td>418.0000</td>
+    </tr>
+    <tr>
+      <td>SIRA</td>
+      <td>0.7643</td>
+      <td>0.9249</td>
+      <td>0.8370</td>
+      <td>519.0000</td>
+    </tr>
+    <tr>
+      <td>accuracy</td>
+      <td>0.9105</td>
+      <td>0.9105</td>
+      <td>0.9105</td>
+      <td>0.9105</td>
+    </tr>
+    <tr>
+      <td>macro avg</td>
+      <td>0.9318</td>
+      <td>0.9179</td>
+      <td>0.9231</td>
+      <td>2737.0000</td>
+    </tr>
+    <tr>
+      <td>weighted avg</td>
+      <td>0.9179</td>
+      <td>0.9105</td>
+      <td>0.9122</td>
+      <td>2737.0000</td>
+    </tr>
+  </tbody>
+</table>
+        <h4>单算法图表</h4>
+        <div class="figure-grid"><figure><img src="figures/confusion_matrix_logistic_regression.png" alt="confusion_matrix_logistic_regression"><figcaption>confusion_matrix_logistic_regression</figcaption></figure><figure><img src="figures/model_metrics_logistic_regression.png" alt="model_metrics_logistic_regression"><figcaption>model_metrics_logistic_regression</figcaption></figure><figure><img src="figures/class_f1_logistic_regression.png" alt="class_f1_logistic_regression"><figcaption>class_f1_logistic_regression</figcaption></figure><figure><img src="figures/loss_curve_logistic_regression.png" alt="loss_curve_logistic_regression"><figcaption>loss_curve_logistic_regression</figcaption></figure><figure><img src="figures/robustness_logistic_regression.png" alt="robustness_logistic_regression"><figcaption>robustness_logistic_regression</figcaption></figure></div>
+      </article>
+            
+
+      <article class="model-block" id="knn">
+        <h3>KNN <span>课堂已学</span></h3>
+        <p>基于距离投票的非参数算法；天然支持多分类，没有迭代 loss 曲线。</p>
+        
+        <div class="metric-cards">
+          <div><strong>1.0000</strong><span>训练集准确率</span></div>
+          <div><strong>0.9220</strong><span>验证集准确率</span></div>
+          <div><strong>0.9295</strong><span>测试集准确率</span></div>
+          <div><strong>0.9405</strong><span>宏平均 F1</span></div>
+          <div><strong>0.0705</strong><span>过拟合差异</span></div>
+          <div><strong>0.005233</strong><span>毫秒/样本</span></div>
+        </div>
+        
+        <p><strong>过拟合分析：</strong>训练集精度明显高于测试集精度，存在一定过拟合现象。</p>
+        <p><strong>推理速度：</strong>测试集平均预测耗时 0.014322 秒，
+        折合单样本 0.005233 ms。</p>
+        <p><strong>鲁棒性分析：</strong>平均精度下降为 0.0065；最明显下降出现在 missing 噪声、强度 0.05，下降 0.0110。</p>
+        <p><strong>Loss 曲线说明：</strong>该算法不是按 epoch 迭代记录 loss 的训练方式，因此不单独绘制 loss 曲线。</p>
+        <h4>分类报告</h4>
+        <table class="dataframe data-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>label</th>
+      <th>precision</th>
+      <th>recall</th>
+      <th>f1-score</th>
+      <th>support</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>BARBUNYA</td>
+      <td>0.9542</td>
+      <td>0.9225</td>
+      <td>0.9381</td>
+      <td>271.0000</td>
+    </tr>
+    <tr>
+      <td>BOMBAY</td>
+      <td>1.0000</td>
+      <td>1.0000</td>
+      <td>1.0000</td>
+      <td>111.0000</td>
+    </tr>
+    <tr>
+      <td>CALI</td>
+      <td>0.9245</td>
+      <td>0.9415</td>
+      <td>0.9329</td>
+      <td>325.0000</td>
+    </tr>
+    <tr>
+      <td>DERMASON</td>
+      <td>0.9175</td>
+      <td>0.9175</td>
+      <td>0.9175</td>
+      <td>691.0000</td>
+    </tr>
+    <tr>
+      <td>HOROZ</td>
+      <td>0.9672</td>
+      <td>0.9527</td>
+      <td>0.9599</td>
+      <td>402.0000</td>
+    </tr>
+    <tr>
+      <td>SEKER</td>
+      <td>0.9566</td>
+      <td>0.9498</td>
+      <td>0.9532</td>
+      <td>418.0000</td>
+    </tr>
+    <tr>
+      <td>SIRA</td>
+      <td>0.8719</td>
+      <td>0.8921</td>
+      <td>0.8819</td>
+      <td>519.0000</td>
+    </tr>
+    <tr>
+      <td>accuracy</td>
+      <td>0.9295</td>
+      <td>0.9295</td>
+      <td>0.9295</td>
+      <td>0.9295</td>
+    </tr>
+    <tr>
+      <td>macro avg</td>
+      <td>0.9417</td>
+      <td>0.9395</td>
+      <td>0.9405</td>
+      <td>2737.0000</td>
+    </tr>
+    <tr>
+      <td>weighted avg</td>
+      <td>0.9299</td>
+      <td>0.9295</td>
+      <td>0.9296</td>
+      <td>2737.0000</td>
+    </tr>
+  </tbody>
+</table>
+        <h4>单算法图表</h4>
+        <div class="figure-grid"><figure><img src="figures/confusion_matrix_knn.png" alt="confusion_matrix_knn"><figcaption>confusion_matrix_knn</figcaption></figure><figure><img src="figures/model_metrics_knn.png" alt="model_metrics_knn"><figcaption>model_metrics_knn</figcaption></figure><figure><img src="figures/class_f1_knn.png" alt="class_f1_knn"><figcaption>class_f1_knn</figcaption></figure><figure><img src="figures/robustness_knn.png" alt="robustness_knn"><figcaption>robustness_knn</figcaption></figure></div>
+      </article>
+            
+
+      <article class="model-block" id="linear_svm">
+        <h3>Linear SVM <span>课堂已学</span></h3>
+        <p>使用 hinge loss 的线性支持向量机；可绘制训练过程中的 hinge loss。</p>
+        
+        <div class="metric-cards">
+          <div><strong>0.9126</strong><span>训练集准确率</span></div>
+          <div><strong>0.9139</strong><span>验证集准确率</span></div>
+          <div><strong>0.9141</strong><span>测试集准确率</span></div>
+          <div><strong>0.9268</strong><span>宏平均 F1</span></div>
+          <div><strong>-0.0016</strong><span>过拟合差异</span></div>
+          <div><strong>0.000041</strong><span>毫秒/样本</span></div>
+        </div>
+        
+        <p><strong>过拟合分析：</strong>训练集和测试集精度差异较小，泛化表现较稳定。</p>
+        <p><strong>推理速度：</strong>测试集平均预测耗时 0.000111 秒，
+        折合单样本 0.000041 ms。</p>
+        <p><strong>鲁棒性分析：</strong>平均精度下降为 0.0086；最明显下降出现在 missing 噪声、强度 0.10，下降 0.0311。</p>
+        <p><strong>Loss 曲线说明：</strong>该算法使用迭代优化，本报告已单独给出训练集和验证集 loss 曲线。</p>
+        <h4>分类报告</h4>
+        <table class="dataframe data-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>label</th>
+      <th>precision</th>
+      <th>recall</th>
+      <th>f1-score</th>
+      <th>support</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>BARBUNYA</td>
+      <td>0.9522</td>
+      <td>0.8819</td>
+      <td>0.9157</td>
+      <td>271.0000</td>
+    </tr>
+    <tr>
+      <td>BOMBAY</td>
+      <td>1.0000</td>
+      <td>0.9910</td>
+      <td>0.9955</td>
+      <td>111.0000</td>
+    </tr>
+    <tr>
+      <td>CALI</td>
+      <td>0.9475</td>
+      <td>0.8892</td>
+      <td>0.9175</td>
+      <td>325.0000</td>
+    </tr>
+    <tr>
+      <td>DERMASON</td>
+      <td>0.9337</td>
+      <td>0.8973</td>
+      <td>0.9151</td>
+      <td>691.0000</td>
+    </tr>
+    <tr>
+      <td>HOROZ</td>
+      <td>0.9690</td>
+      <td>0.9328</td>
+      <td>0.9506</td>
+      <td>402.0000</td>
+    </tr>
+    <tr>
+      <td>SEKER</td>
+      <td>0.9632</td>
+      <td>0.9402</td>
+      <td>0.9516</td>
+      <td>418.0000</td>
+    </tr>
+    <tr>
+      <td>SIRA</td>
+      <td>0.7778</td>
+      <td>0.9171</td>
+      <td>0.8417</td>
+      <td>519.0000</td>
+    </tr>
+    <tr>
+      <td>accuracy</td>
+      <td>0.9141</td>
+      <td>0.9141</td>
+      <td>0.9141</td>
+      <td>0.9141</td>
+    </tr>
+    <tr>
+      <td>macro avg</td>
+      <td>0.9348</td>
+      <td>0.9214</td>
+      <td>0.9268</td>
+      <td>2737.0000</td>
+    </tr>
+    <tr>
+      <td>weighted avg</td>
+      <td>0.9200</td>
+      <td>0.9141</td>
+      <td>0.9156</td>
+      <td>2737.0000</td>
+    </tr>
+  </tbody>
+</table>
+        <h4>单算法图表</h4>
+        <div class="figure-grid"><figure><img src="figures/confusion_matrix_linear_svm.png" alt="confusion_matrix_linear_svm"><figcaption>confusion_matrix_linear_svm</figcaption></figure><figure><img src="figures/model_metrics_linear_svm.png" alt="model_metrics_linear_svm"><figcaption>model_metrics_linear_svm</figcaption></figure><figure><img src="figures/class_f1_linear_svm.png" alt="class_f1_linear_svm"><figcaption>class_f1_linear_svm</figcaption></figure><figure><img src="figures/loss_curve_linear_svm.png" alt="loss_curve_linear_svm"><figcaption>loss_curve_linear_svm</figcaption></figure><figure><img src="figures/robustness_linear_svm.png" alt="robustness_linear_svm"><figcaption>robustness_linear_svm</figcaption></figure></div>
+      </article>
+            
+
+      <article class="model-block" id="random_forest">
+        <h3>Random Forest <span>课堂未讲</span></h3>
+        <p>多棵决策树投票的集成算法，通常对异常值和特征尺度较稳健。</p>
+        
+        <div class="metric-cards">
+          <div><strong>1.0000</strong><span>训练集准确率</span></div>
+          <div><strong>0.9206</strong><span>验证集准确率</span></div>
+          <div><strong>0.9229</strong><span>测试集准确率</span></div>
+          <div><strong>0.9327</strong><span>宏平均 F1</span></div>
+          <div><strong>0.0771</strong><span>过拟合差异</span></div>
+          <div><strong>0.005738</strong><span>毫秒/样本</span></div>
+        </div>
+        
+        <p><strong>过拟合分析：</strong>训练集精度明显高于测试集精度，存在一定过拟合现象。</p>
+        <p><strong>推理速度：</strong>测试集平均预测耗时 0.015706 秒，
+        折合单样本 0.005738 ms。</p>
+        <p><strong>鲁棒性分析：</strong>平均精度下降为 0.0002；最明显下降出现在 missing 噪声、强度 0.10，下降 0.0037。</p>
+        <p><strong>Loss 曲线说明：</strong>该算法不是按 epoch 迭代记录 loss 的训练方式，因此不单独绘制 loss 曲线。</p>
+        <h4>分类报告</h4>
+        <table class="dataframe data-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>label</th>
+      <th>precision</th>
+      <th>recall</th>
+      <th>f1-score</th>
+      <th>support</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>BARBUNYA</td>
+      <td>0.9245</td>
+      <td>0.9041</td>
+      <td>0.9142</td>
+      <td>271.0000</td>
+    </tr>
+    <tr>
+      <td>BOMBAY</td>
+      <td>1.0000</td>
+      <td>1.0000</td>
+      <td>1.0000</td>
+      <td>111.0000</td>
+    </tr>
+    <tr>
+      <td>CALI</td>
+      <td>0.9283</td>
+      <td>0.9169</td>
+      <td>0.9226</td>
+      <td>325.0000</td>
+    </tr>
+    <tr>
+      <td>DERMASON</td>
+      <td>0.9092</td>
+      <td>0.9276</td>
+      <td>0.9183</td>
+      <td>691.0000</td>
+    </tr>
+    <tr>
+      <td>HOROZ</td>
+      <td>0.9646</td>
+      <td>0.9478</td>
+      <td>0.9561</td>
+      <td>402.0000</td>
+    </tr>
+    <tr>
+      <td>SEKER</td>
+      <td>0.9359</td>
+      <td>0.9426</td>
+      <td>0.9392</td>
+      <td>418.0000</td>
+    </tr>
+    <tr>
+      <td>SIRA</td>
+      <td>0.8786</td>
+      <td>0.8786</td>
+      <td>0.8786</td>
+      <td>519.0000</td>
+    </tr>
+    <tr>
+      <td>accuracy</td>
+      <td>0.9229</td>
+      <td>0.9229</td>
+      <td>0.9229</td>
+      <td>0.9229</td>
+    </tr>
+    <tr>
+      <td>macro avg</td>
+      <td>0.9344</td>
+      <td>0.9311</td>
+      <td>0.9327</td>
+      <td>2737.0000</td>
+    </tr>
+    <tr>
+      <td>weighted avg</td>
+      <td>0.9231</td>
+      <td>0.9229</td>
+      <td>0.9229</td>
+      <td>2737.0000</td>
+    </tr>
+  </tbody>
+</table>
+        <h4>单算法图表</h4>
+        <div class="figure-grid"><figure><img src="figures/confusion_matrix_random_forest.png" alt="confusion_matrix_random_forest"><figcaption>confusion_matrix_random_forest</figcaption></figure><figure><img src="figures/model_metrics_random_forest.png" alt="model_metrics_random_forest"><figcaption>model_metrics_random_forest</figcaption></figure><figure><img src="figures/class_f1_random_forest.png" alt="class_f1_random_forest"><figcaption>class_f1_random_forest</figcaption></figure><figure><img src="figures/robustness_random_forest.png" alt="robustness_random_forest"><figcaption>robustness_random_forest</figcaption></figure></div>
+      </article>
+            
+
+      <article class="model-block" id="gaussian_nb">
+        <h3>Gaussian Naive Bayes <span>课堂未讲</span></h3>
+        <p>基于条件独立假设的概率分类器，训练和推理速度很快。</p>
+        
+        <div class="metric-cards">
+          <div><strong>0.9011</strong><span>训练集准确率</span></div>
+          <div><strong>0.9154</strong><span>验证集准确率</span></div>
+          <div><strong>0.9065</strong><span>测试集准确率</span></div>
+          <div><strong>0.9154</strong><span>宏平均 F1</span></div>
+          <div><strong>-0.0054</strong><span>过拟合差异</span></div>
+          <div><strong>0.000146</strong><span>毫秒/样本</span></div>
+        </div>
+        
+        <p><strong>过拟合分析：</strong>训练集和测试集精度差异较小，泛化表现较稳定。</p>
+        <p><strong>推理速度：</strong>测试集平均预测耗时 0.000399 秒，
+        折合单样本 0.000146 ms。</p>
+        <p><strong>鲁棒性分析：</strong>平均精度下降为 0.0030；最明显下降出现在 label_flip 噪声、强度 0.10，下降 0.0084。</p>
+        <p><strong>Loss 曲线说明：</strong>该算法不是按 epoch 迭代记录 loss 的训练方式，因此不单独绘制 loss 曲线。</p>
+        <h4>分类报告</h4>
+        <table class="dataframe data-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>label</th>
+      <th>precision</th>
+      <th>recall</th>
+      <th>f1-score</th>
+      <th>support</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>BARBUNYA</td>
+      <td>0.8897</td>
+      <td>0.8635</td>
+      <td>0.8764</td>
+      <td>271.0000</td>
+    </tr>
+    <tr>
+      <td>BOMBAY</td>
+      <td>0.9823</td>
+      <td>1.0000</td>
+      <td>0.9911</td>
+      <td>111.0000</td>
+    </tr>
+    <tr>
+      <td>CALI</td>
+      <td>0.8746</td>
+      <td>0.9015</td>
+      <td>0.8879</td>
+      <td>325.0000</td>
+    </tr>
+    <tr>
+      <td>DERMASON</td>
+      <td>0.9282</td>
+      <td>0.8799</td>
+      <td>0.9034</td>
+      <td>691.0000</td>
+    </tr>
+    <tr>
+      <td>HOROZ</td>
+      <td>0.9526</td>
+      <td>0.9502</td>
+      <td>0.9514</td>
+      <td>402.0000</td>
+    </tr>
+    <tr>
+      <td>SEKER</td>
+      <td>0.9271</td>
+      <td>0.9426</td>
+      <td>0.9348</td>
+      <td>418.0000</td>
+    </tr>
+    <tr>
+      <td>SIRA</td>
+      <td>0.8422</td>
+      <td>0.8844</td>
+      <td>0.8628</td>
+      <td>519.0000</td>
+    </tr>
+    <tr>
+      <td>accuracy</td>
+      <td>0.9065</td>
+      <td>0.9065</td>
+      <td>0.9065</td>
+      <td>0.9065</td>
+    </tr>
+    <tr>
+      <td>macro avg</td>
+      <td>0.9138</td>
+      <td>0.9174</td>
+      <td>0.9154</td>
+      <td>2737.0000</td>
+    </tr>
+    <tr>
+      <td>weighted avg</td>
+      <td>0.9073</td>
+      <td>0.9065</td>
+      <td>0.9066</td>
+      <td>2737.0000</td>
+    </tr>
+  </tbody>
+</table>
+        <h4>单算法图表</h4>
+        <div class="figure-grid"><figure><img src="figures/confusion_matrix_gaussian_nb.png" alt="confusion_matrix_gaussian_nb"><figcaption>confusion_matrix_gaussian_nb</figcaption></figure><figure><img src="figures/model_metrics_gaussian_nb.png" alt="model_metrics_gaussian_nb"><figcaption>model_metrics_gaussian_nb</figcaption></figure><figure><img src="figures/class_f1_gaussian_nb.png" alt="class_f1_gaussian_nb"><figcaption>class_f1_gaussian_nb</figcaption></figure><figure><img src="figures/robustness_gaussian_nb.png" alt="robustness_gaussian_nb"><figcaption>robustness_gaussian_nb</figcaption></figure></div>
+      </article>
+            
+  </main>
+</body>
+</html>

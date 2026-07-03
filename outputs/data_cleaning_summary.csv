@@ -1,0 +1,4 @@
+split,raw_rows,cleaned_rows,raw_columns,duplicate_rows_raw,duplicate_rows_removed,missing_cells_raw,missing_cells_after_numeric_conversion,non_numeric_feature_cells,negative_area_fixed,class_label_variants_normalized,invalid_class_rows_dropped,invalid_domain_cells_set_missing
+train,9527,9503,17,21,24,741,943,460,0,406,0,0
+val,1347,1347,17,0,0,103,125,60,11,61,0,0
+test,2737,2737,17,0,0,221,267,138,19,114,0,0
