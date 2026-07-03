@@ -194,23 +194,7 @@ python main.py --noise-types gaussian missing label_flip --noise-strengths 0.03 
 python regenerate_report.py --output-dir outputs
 ```
 
-## 九、网页展示
-
-项目支持 GitHub Pages 展示。上传仓库后，在 GitHub 仓库中进入：
-
-```text
-Settings -> Pages -> Build and deployment
-```
-
-选择当前分支和根目录发布。发布完成后，访问 GitHub Pages 地址即可进入展示页面。根目录的 `index.html` 会自动跳转到：
-
-```text
-outputs/report.html
-```
-
-展示页面包含数据描述、数据处理流程、五种算法对比、单算法分析、图表和结果表。
-
-## 十、总结
+## 九、总结
 
 本项目完成了结构化数据多分类任务的完整实验流程。数据处理部分解决了标签污染、缺失值、非数值字符串、负面积和重复样本等问题；模型部分比较了线性模型、距离模型、集成模型和概率模型；结果展示部分生成了可直接上传到 GitHub Pages 的静态网页。
 
